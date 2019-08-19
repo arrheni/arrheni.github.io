@@ -1,0 +1,268 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty plugin="gitlab-plugin@1.4.5">
+      <gitLabConnection></gitLabConnection>
+    </com.dabsquared.gitlabjenkins.connection.GitLabConnectionProperty>
+    <org.jenkinsci.plugins.gitlablogo.GitlabLogoProperty plugin="gitlab-logo@1.0.3">
+      <repositoryName></repositoryName>
+    </org.jenkinsci.plugins.gitlablogo.GitlabLogoProperty>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>7</daysToKeep>
+        <numToKeep>-1</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+  </properties>
+  <scm class="hudson.scm.SubversionSCM" plugin="subversion@2.7.2">
+    <locations>
+      <hudson.scm.SubversionSCM_-ModuleLocation>
+        <remote>https://30.1.10.94/svn/SinosoftNewGroup/trunk</remote>
+        <credentialsId>9386d306-2a4d-420a-b468-bf23725e7827</credentialsId>
+        <local>.\sourcecode</local>
+        <depthOption>infinity</depthOption>
+        <ignoreExternalsOption>true</ignoreExternalsOption>
+      </hudson.scm.SubversionSCM_-ModuleLocation>
+    </locations>
+    <excludedRegions></excludedRegions>
+    <includedRegions></includedRegions>
+    <excludedUsers></excludedUsers>
+    <excludedRevprop></excludedRevprop>
+    <excludedCommitMessages></excludedCommitMessages>
+    <workspaceUpdater class="hudson.scm.subversion.UpdateUpdater"/>
+    <ignoreDirPropChanges>false</ignoreDirPropChanges>
+    <filterChangelog>false</filterChangelog>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <hudson.triggers.SCMTrigger>
+      <spec>H 23 * * *
+20 12 * * 1-5</spec>
+      <ignorePostCommitHooks>false</ignorePostCommitHooks>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.BatchFile>
+      <command>REM 获取java文件更新清单&#xd;
+set date=%date:~0,4%%date:~5,2%%date:~8,2%&#xd;
+del  javalist.txt&#xd;
+del  uilist.txt&#xd;
+svn diff -r {%date%} --summarize https://30.1.10.94/svn/SinosoftNewGroup/trunk&gt;list.txt</command>
+    </hudson.tasks.BatchFile>
+    <hudson.tasks.BatchFile>
+      <command>REM 处理文件清单&#xd;
+for /f &quot;eol=D tokens=* delims= &quot; %%i in (list.txt) do  echo %%i&gt;&gt;temp.txt&#xd;
+del list.txt&#xd;
+ren &quot;temp.txt&quot; &quot;list.txt&quot;&#xd;
+setlocal EnableDelayedExpansion&#xd;
+for /f &quot;tokens=2&quot; %%a in (list.txt) do (&#xd;
+set str=%%a&#xd;
+set str=!str:https://30.1.10.94/svn/SinosoftNewGroup/trunk=!&#xd;
+set str=!str:/ui/=ui/!&#xd;
+set str=!str:/java/=java/!&#xd;
+set str=!str:/=\!&#xd;
+echo !str!&gt;&gt;tmp.txt&#xd;
+)&#xd;
+&#xd;
+del list.txt&#xd;
+ren &quot;tmp.txt&quot; &quot;list.txt&quot;&#xd;
+copy  list.txt  uilist.txt</command>
+    </hudson.tasks.BatchFile>
+    <hudson.tasks.BatchFile>
+      <command>rem 通过java清单编译java类&#xd;
+del D:\jenkins\workspace\新团险dat更新\update\*.* /f/s/q&#xd;
+del D:\jenkins\workspace\新团险dat更新\LIS\*.* /f/s/q&#xd;
+&#xd;
+REM 处理java清单中非java类文件&#xd;
+@echo off&#xd;
+set  endword=.java&#xd;
+for %%a in (%endword%) do (&#xd;
+	findstr /E &quot;%%a$&quot; list.txt &gt;Temp.txt&#xd;
+        del list.txt&#xd;
+        move Temp.txt javalist.txt&#xd;
+)&#xd;
+&#xd;
+REM 如果javalist为空文件，则删除&#xd;
+@echo off&#xd;
+set &quot;paths=javalist.txt&quot;&#xd;
+for %%a in (&quot;%paths%&quot;) do (&#xd;
+     if &quot;%%~za&quot; equ &quot;0&quot; (&#xd;
+       del %paths%      &#xd;
+        )&#xd;
+)&#xd;
+&#xd;
+REM 编译java文件&#xd;
+if exist javalist.txt goto :aaa&#xd;
+if not exist javalist.txt exit 0&#xd;
+&#xd;
+:aaa&#xd;
+set BASEPATH=D:\jenkins\workspace\新团险dat更新\sourcecode&#xd;
+set CLASSPATH=D:\jenkins\workspace\新团险dat更新\update&#xd;
+set LISTPATH=D:\jenkins\workspace\新团险dat更新&#xd;
+set JAVAHOME=&quot;C:\Program Files\Java\jdk1.8.0_91\bin&quot;&#xd;
+cd %BASEPATH%&#xd;
+%JAVAHOME%\javac -source 1.7 -target 1.7 -encoding utf-8 -deprecation -extdirs %BASEPATH%\ui\WEB-INF\lib -classpath %BASEPATH%\ui\WEB-INF\classes  -d %CLASSPATH%\ui\WEB-INF\classes  @%LISTPATH%\javalist.txt&#xd;
+&#xd;
+&#xd;
+</command>
+    </hudson.tasks.BatchFile>
+    <hudson.tasks.BatchFile>
+      <command>REM  将生成的class文件拷贝到本地代码ui\WEB-INF\classes下面&#xd;
+xcopy D:\jenkins\workspace\新团险dat更新\update\ui\WEB-INF\classes\* D:\jenkins\workspace\新团险dat更新\sourcecode\ui\WEB-INF\classes\   /s/e/y &#xd;
+&#xd;
+REM  处理ui文件清单&#xd;
+cd D:\jenkins\workspace\新团险dat更新&#xd;
+@echo off&#xd;
+set  endword=.java&#xd;
+for %%a in (%endword%) do (&#xd;
+	findstr /v &quot;%%a$&quot; uilist.txt &gt;tmp.txt&#xd;
+        del uilist.txt&#xd;
+	move tmp.txt uilist.txt&#xd;
+)&#xd;
+&#xd;
+echo  去除清单中的文件夹路径&#xd;
+@echo off&#xd;
+set  endword=.&#xd;
+for %%a in (%endword%) do (&#xd;
+	findstr /L &quot;%%a&quot; uilist.txt &gt;tmp.txt&#xd;
+        del uilist.txt&#xd;
+	move tmp.txt uilist.txt&#xd;
+)&#xd;
+rem ui文件拷贝（先生成拷贝脚本）&#xd;
+echo =============通过UI清单生成拷贝命令=================&#xd;
+@echo off&amp;setlocal enabledelayedexpansion&#xd;
+set head=echo f &quot;|&quot; xcopy   &#xd;
+set tail=   D:\jenkins\workspace\新团险dat更新\update\&#xd;
+set var=   /f/y&#xd;
+for /f &quot;delims=&quot; %%i in (uilist.txt) do (echo !head!%%i!tail!%%i!var!&gt;&gt;D:\jenkins\workspace\新团险dat更新\sourcecode\cpui.txt)&#xd;
+&#xd;
+cd D:\jenkins\workspace\新团险dat更新\sourcecode&#xd;
+@echo off&amp;setlocal enabledelayedexpansion&#xd;
+for /f &quot;delims=&quot; %%a in (cpui.txt) do (&#xd;
+set str=%%a&#xd;
+set str=!str:&quot;= !&#xd;
+set str=!str:&quot;= !&#xd;
+&#xd;
+echo !str!&gt;&gt;tmp.txt&#xd;
+)&#xd;
+del cpui.txt&#xd;
+ren &quot;tmp.txt&quot; &quot;cpui.bat&quot;&#xd;
+&#xd;
+call cpui.bat&#xd;
+del  cpui.bat&#xd;
+&#xd;
+xcopy  D:\jenkins\workspace\新团险dat更新\update\java\*  D:\jenkins\workspace\新团险dat更新\update\ui\WEB-INF\classes   /s/e/y&#xd;
+rd /s/q D:\jenkins\workspace\新团险dat更新\update\java&#xd;
+xcopy  D:\jenkins\workspace\新团险dat更新\update\*    D:\jenkins\workspace\新团险dat更新\LIS   /s/e/y</command>
+    </hudson.tasks.BatchFile>
+    <hudson.tasks.BatchFile>
+      <command>ECHO   ============设置变量==============&#xd;
+SET LOCAL_PATH=D:\jenkins\workspace\新团险dat更新\LIS\ui&#xd;
+		SET REMOTE_PATH=/bea/&#xd;
+		SET SERVER_HOST=30.1.10.56&#xd;
+		SET USER=root&#xd;
+		SET PASS=test@123&#xd;
+		SET PSCP_PATH=D:\jenkins\workspace&#xd;
+		&#xd;
+&#xd;
+ECHO=    PSCP上传服务器（30.1.10.56）&#xd;
+&#xd;
+echo y | %PSCP_PATH%\pscp -v -r -pw %PASS% %LOCAL_PATH% %USER%@%SERVER_HOST%:%REMOTE_PATH%</command>
+    </hudson.tasks.BatchFile>
+  </builders>
+  <publishers>
+    <hudson.plugins.emailext.ExtendedEmailPublisher plugin="email-ext@2.57">
+      <recipientList></recipientList>
+      <configuredTriggers>
+        <hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+          <email>
+            <recipientList>niukaikai@sinosoft.com.cn wanyiming@sinosoft.com.cn</recipientList>
+            <subject>$PROJECT_DEFAULT_SUBJECT</subject>
+            <body>$PROJECT_DEFAULT_CONTENT</body>
+            <recipientProviders>
+              <hudson.plugins.emailext.plugins.recipients.DevelopersRecipientProvider/>
+              <hudson.plugins.emailext.plugins.recipients.ListRecipientProvider/>
+            </recipientProviders>
+            <attachmentsPattern></attachmentsPattern>
+            <attachBuildLog>true</attachBuildLog>
+            <compressBuildLog>false</compressBuildLog>
+            <replyTo>$PROJECT_DEFAULT_REPLYTO</replyTo>
+            <contentType>project</contentType>
+          </email>
+        </hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+        <hudson.plugins.emailext.plugins.trigger.SuccessTrigger>
+          <email>
+            <recipientList>liuchunyun@sinosoft.com.cn renshengnan@sinosoft.com.cn jiyaqin@sinosoft.com.cn</recipientList>
+            <subject>$PROJECT_DEFAULT_SUBJECT</subject>
+            <body>$PROJECT_DEFAULT_CONTENT</body>
+            <recipientProviders>
+              <hudson.plugins.emailext.plugins.recipients.DevelopersRecipientProvider/>
+              <hudson.plugins.emailext.plugins.recipients.ListRecipientProvider/>
+            </recipientProviders>
+            <attachmentsPattern></attachmentsPattern>
+            <attachBuildLog>true</attachBuildLog>
+            <compressBuildLog>false</compressBuildLog>
+            <replyTo>$PROJECT_DEFAULT_REPLYTO</replyTo>
+            <contentType>project</contentType>
+          </email>
+        </hudson.plugins.emailext.plugins.trigger.SuccessTrigger>
+      </configuredTriggers>
+      <contentType>default</contentType>
+      <defaultSubject>$DEFAULT_SUBJECT</defaultSubject>
+      <defaultContent>$DEFAULT_CONTENT</defaultContent>
+      <attachmentsPattern>buildlog.log</attachmentsPattern>
+      <presendScript>$DEFAULT_PRESEND_SCRIPT</presendScript>
+      <postsendScript>$DEFAULT_POSTSEND_SCRIPT</postsendScript>
+      <attachBuildLog>false</attachBuildLog>
+      <compressBuildLog>false</compressBuildLog>
+      <replyTo>$DEFAULT_REPLYTO</replyTo>
+      <saveOutput>false</saveOutput>
+      <disabled>false</disabled>
+    </hudson.plugins.emailext.ExtendedEmailPublisher>
+    <jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin plugin="publish-over-ssh@1.17">
+      <consolePrefix>SSH: </consolePrefix>
+      <delegate>
+        <publishers>
+          <jenkins.plugins.publish__over__ssh.BapSshPublisher>
+            <configName>30.1.10.56</configName>
+            <verbose>false</verbose>
+            <transfers>
+              <jenkins.plugins.publish__over__ssh.BapSshTransfer>
+                <remoteDirectory></remoteDirectory>
+                <sourceFiles></sourceFiles>
+                <excludes></excludes>
+                <removePrefix></removePrefix>
+                <remoteDirectorySDF>false</remoteDirectorySDF>
+                <flatten>false</flatten>
+                <cleanRemote>false</cleanRemote>
+                <noDefaultExcludes>false</noDefaultExcludes>
+                <makeEmptyDirs>false</makeEmptyDirs>
+                <patternSeparator>[, ]+</patternSeparator>
+                <execCommand>bash /root/Oracle/Middleware/user_projects/domains/base_domain/bin/rebootWebLogic56.sh</execCommand>
+                <execTimeout>120000</execTimeout>
+                <usePty>false</usePty>
+                <useAgentForwarding>false</useAgentForwarding>
+              </jenkins.plugins.publish__over__ssh.BapSshTransfer>
+            </transfers>
+            <useWorkspaceInPromotion>false</useWorkspaceInPromotion>
+            <usePromotionTimestamp>false</usePromotionTimestamp>
+          </jenkins.plugins.publish__over__ssh.BapSshPublisher>
+        </publishers>
+        <continueOnError>false</continueOnError>
+        <failOnError>false</failOnError>
+        <alwaysPublishFromMaster>false</alwaysPublishFromMaster>
+        <hostConfigurationAccess class="jenkins.plugins.publish_over_ssh.BapSshPublisherPlugin" reference="../.."/>
+      </delegate>
+    </jenkins.plugins.publish__over__ssh.BapSshPublisherPlugin>
+  </publishers>
+  <buildWrappers/>
+</project>
